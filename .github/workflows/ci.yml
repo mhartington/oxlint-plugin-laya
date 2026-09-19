@@ -12,10 +12,11 @@ jobs:
         node: [22, 24]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: voidzero-dev/setup-vp@v1.21.0
         with:
           node-version: ${{ matrix.node }}
-          cache: npm
-      - run: npm ci
-      - run: npm run check
-      - run: npm test
+          cache: true
+      - run: vp install
+      - run: vp check
+      - run: vp run build
+      - run: vp test
