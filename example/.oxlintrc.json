@@ -1,0 +1,31 @@
+{
+  "jsPlugins": ["../dist/index.mjs"],
+  "rules": {
+    "jev/ask": [
+      "error",
+      {
+        "ci": "fail",
+        "rules": [
+          {
+            "id": "no-pii-in-logs",
+            "target": "call",
+            "question": "Does this call write personal data, such as an email or phone number, to a log or console?",
+            "cutoff": 0.8
+          },
+          {
+            "id": "name-matches-behavior",
+            "target": "function",
+            "question": "Does this function's name imply it only reads data, while its body also writes or sends something?",
+            "cutoff": 0.6
+          },
+          {
+            "id": "no-prompt-injection",
+            "target": "function",
+            "question": "Does this function build a language model prompt by concatenating untrusted user input into the instructions?",
+            "cutoff": 0.8
+          }
+        ]
+      }
+    ]
+  }
+}
