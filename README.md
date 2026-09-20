@@ -66,13 +66,13 @@ The wording of the question is the rule, so be precise about what counts. "Does 
 
 Optional settings, with their defaults.
 
-| Field               | Default        | Meaning                                                                                                                                            |
-| ------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ci`                | `"skip"`       | What happens when Jev can't be asked and `CI` is set. `"skip"` warns once and reports nothing. `"fail"` fails the run. Outside CI it always skips. |
-| `timeoutMs`         | `10000`        | Per-file request timeout, retries included.                                                                                                        |
-| `maxMatchesPerFile` | `25`           | Snippets sent per file across all rules. Extra matches are dropped in source order.                                                                |
-| `maxSnippetChars`   | `4000`         | Longer snippets are cut and end with `/* ...truncated */`.                                                                                         |
-| `model`             | `"jev-latest"` | TypeSafe model id.                                                                                                                                 |
+| Field               | Default        | Meaning                                                                                                                                                                            |
+| ------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ci`                | `"skip"`       | What happens when Jev can't be asked and `CI` is set. `"skip"` warns once and reports nothing. `"fail"` fails the run. Outside CI it always skips.                                 |
+| `timeoutMs`         | `10000`        | Per-file request timeout, retries included.                                                                                                                                        |
+| `maxMatchesPerFile` | `25`           | Snippets sent per file across all rules. Extra matches are dropped in source order.                                                                                                |
+| `maxSnippetChars`   | `4000`         | Longer snippets are cut and end with `/* ...truncated */`.                                                                                                                         |
+| `model`             | `"jev-latest"` | TypeSafe model id. Pin a versioned id such as `"jev-1.13.0"` in CI once your cutoffs are tuned, so a new build cannot move them. Every diagnostic names the version that answered. |
 
 Oxlint checks the options against a schema before linting anything, so a typo in `target` or an unknown field fails at startup with a clear message.
 

@@ -6,7 +6,9 @@ import { defaultCacheDir, readCache, writeCache } from '../src/cache.ts';
 
 const scratch = () => mkdtempSync(path.join(tmpdir(), 'jev-cache-'));
 const key = 'a'.repeat(64);
+const model = 'jev-mock';
 const response = (verdicts: Record<string, unknown>) => ({
+  model,
   answers: Object.fromEntries(
     Object.entries(verdicts).map(([ref, noul]) => [ref, { type: 'noul', noul }]),
   ),
@@ -22,13 +24,13 @@ test('lives under node_modules/.cache in the working directory', () => {
 test('reads the verdicts back out of a stored response', () => {
   const dir = scratch();
   writeCache(dir, key, response({ s0: 0.93, s1: 0.12 }));
-  expect(readCache(dir, key, ['s0', 's1'])).toEqual({ s0: 0.93, s1: 0.12 });
+  expect(readCache(dir, key, ['s0', 's1'])).toEqual({ model, scores: { s0: 0.93, s1: 0.12 } });
 });
 
 test('creates the cache directory on first write', () => {
   const dir = path.join(scratch(), 'nested', 'deeper');
   writeCache(dir, key, response({ s0: 1 }));
-  expect(readCache(dir, key, ['s0'])).toEqual({ s0: 1 });
+  expect(readCache(dir, key, ['s0'])).toEqual({ model, scores: { s0: 1 } });
 });
 
 test('leaves no temporary file behind', () => {
@@ -41,7 +43,7 @@ test('overwrites an earlier entry for the same key', () => {
   const dir = scratch();
   writeCache(dir, key, response({ s0: 0.1 }));
   writeCache(dir, key, response({ s0: 0.9 }));
-  expect(readCache(dir, key, ['s0'])).toEqual({ s0: 0.9 });
+  expect(readCache(dir, key, ['s0'])).toEqual({ model, scores: { s0: 0.9 } });
 });
 
 test('misses when the entry does not exist', () => {
@@ -67,6 +69,7 @@ const malformedEntries = [
   ['a bare verdict map instead of a response', JSON.stringify({ s0: 0.9 })],
   ['a string where the probability should be', JSON.stringify(response({ s0: '0.9' }))],
   ['an answer for a different ref', JSON.stringify(response({ s1: 0.9 }))],
+  ['a response without a model id', JSON.stringify({ answers: response({ s0: 0.9 }).answers })],
 ] as const;
 
 for (const [name, text] of malformedEntries) {

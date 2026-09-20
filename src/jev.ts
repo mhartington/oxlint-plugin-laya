@@ -35,23 +35,32 @@ function answersOf(json: unknown): Record<string, unknown> {
   throw new Error('response has no answers object');
 }
 
+function modelOf(json: unknown): string {
+  if (typeof json === 'object' && json !== null && 'model' in json) {
+    const { model } = json;
+    if (typeof model === 'string' && model.length > 0) return model;
+  }
+  throw new Error('response has no model id');
+}
+
 const noulOf = (answer: unknown): unknown =>
   typeof answer === 'object' && answer !== null && 'noul' in answer ? answer.noul : undefined;
 
 export function parseVerdicts(json: unknown, refs: readonly string[]): Verdicts {
+  const model = modelOf(json);
   const answers = answersOf(json);
-  const verdicts: Verdicts = {};
+  const scores: Record<string, number> = {};
   for (const ref of refs) {
     const noul = noulOf(answers[ref]);
     if (typeof noul !== 'number' || !(noul >= 0 && noul <= 1)) {
       throw new Error(`response has no probability in [0, 1] for "${ref}"`);
     }
-    verdicts[ref] = noul;
+    scores[ref] = noul;
   }
-  return verdicts;
+  return { model, scores };
 }
 
 export function cacheKey({ endpoint, request }: { endpoint: string; request: JevRequest }): string {
-  const payload = JSON.stringify({ v: 2, endpoint, request });
+  const payload = JSON.stringify({ v: 3, endpoint, request });
   return createHash('sha256').update(payload).digest('hex');
 }

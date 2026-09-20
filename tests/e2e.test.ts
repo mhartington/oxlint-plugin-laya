@@ -70,9 +70,9 @@ test('oxlint reports what Jev answered yes to', async () => {
   }
   expect(
     jevLines(first),
-    `the messageId renders the id, both numbers at two decimals, and the question\n${first.stdout}`,
+    `the messageId renders the id, the model that answered, both numbers at two decimals, and the question\n${first.stdout}`,
   ).toContain(
-    'example/fail.js:5:3: error jev(ask): [no-pii-in-logs] Jev answered yes (0.95 >= 0.80): Does this call write personal data, such as an email or phone number, to a log or console?',
+    'example/fail.js:5:3: error jev(ask): [no-pii-in-logs] jev-mock answered yes (0.95 >= 0.80): Does this call write personal data, such as an email or phone number, to a log or console?',
   );
   expect(
     jevLines(first).length,

@@ -43,7 +43,11 @@ export interface JevRequest {
   questions: Record<string, NoulQuestion>;
 }
 
-export type Verdicts = Record<string, number>;
+export interface Verdicts {
+  /** The versioned id that answered, such as `jev-1.13.0`, even when the request said `jev-latest`. */
+  readonly model: string;
+  readonly scores: Record<string, number>;
+}
 
 export interface AskInput {
   apiKey: string;
