@@ -26,7 +26,7 @@ function answer(body: MockRequestBody) {
       noul: scoreFor(body.questions[ref].instructions, body.state.snippets[ref]),
     };
   }
-  return { answers, usage: { input_tokens: 0, output_tokens: 0 } };
+  return { model: 'jev-mock', answers, usage: { input_tokens: 0, output_tokens: 0 } };
 }
 
 const hitsByToken: Record<string, number> = {};

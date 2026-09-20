@@ -165,13 +165,19 @@ function createOnce(context: Context): VisitorWithHooks {
     const verdicts = verdictsFor(context, collected.options, collected.matches, collected.apiKey);
     if (verdicts === null) return;
     collected.matches.forEach((match, index) => {
-      const score = verdicts[refAt(index)];
+      const score = verdicts.scores[refAt(index)];
       if (score >= match.rule.cutoff) {
         const { id, cutoff, question } = match.rule;
         context.report({
           loc: match.loc,
           messageId: 'yes',
-          data: { id, score: score.toFixed(2), cutoff: cutoff.toFixed(2), question },
+          data: {
+            id,
+            model: verdicts.model,
+            score: score.toFixed(2),
+            cutoff: cutoff.toFixed(2),
+            question,
+          },
         });
       }
     });
@@ -187,7 +193,7 @@ const meta = {
   },
   schema: [SCHEMA],
   defaultOptions: [DEFAULTS],
-  messages: { yes: '[{{id}}] Jev answered yes ({{score}} >= {{cutoff}}): {{question}}' },
+  messages: { yes: '[{{id}}] {{model}} answered yes ({{score}} >= {{cutoff}}): {{question}}' },
 } satisfies RuleMeta;
 
 const plugin: JevPlugin = {

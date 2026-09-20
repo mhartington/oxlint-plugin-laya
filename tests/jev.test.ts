@@ -57,39 +57,55 @@ test('marks a snippet past the limit as truncated', () => {
   expect(truncateSnippet('abcdef', 5)).toBe('abcde/* ...truncated */');
 });
 
+const model = 'jev-1.13.0';
+
 test('reads a verdict per ref', () => {
-  const json = { answers: { s0: { type: 'noul', noul: 0.93 }, s1: { type: 'noul', noul: 0.12 } } };
-  expect(parseVerdicts(json, ['s0', 's1'])).toEqual({ s0: 0.93, s1: 0.12 });
+  const json = {
+    model,
+    answers: { s0: { type: 'noul', noul: 0.93 }, s1: { type: 'noul', noul: 0.12 } },
+  };
+  expect(parseVerdicts(json, ['s0', 's1'])).toEqual({ model, scores: { s0: 0.93, s1: 0.12 } });
 });
 
 test('ignores answers for refs that were not asked', () => {
-  const json = { answers: { s0: { noul: 0.4 }, s9: { noul: 0.9 } } };
-  expect(parseVerdicts(json, ['s0'])).toEqual({ s0: 0.4 });
+  const json = { model, answers: { s0: { noul: 0.4 }, s9: { noul: 0.9 } } };
+  expect(parseVerdicts(json, ['s0'])).toEqual({ model, scores: { s0: 0.4 } });
 });
 
 const badResponses: [string, unknown, RegExp][] = [
-  ['there is no answers object', {}, /response has no answers object/],
-  ['answers is not an object', { answers: 'yes' }, /response has no answers object/],
-  ['answers is an array', { answers: [] }, /response has no answers object/],
-  ['a ref is missing', { answers: { s0: { noul: 0.4 } } }, /no probability in \[0, 1\] for "s1"/],
+  ['there is no model id', { answers: { s0: { noul: 0.4 } } }, /response has no model id/],
+  [
+    'the model id is empty',
+    { model: '', answers: { s0: { noul: 0.4 } } },
+    /response has no model id/,
+  ],
+  ['the model id is not a string', { model: 1, answers: {} }, /response has no model id/],
+  ['there is no answers object', { model }, /response has no answers object/],
+  ['answers is not an object', { model, answers: 'yes' }, /response has no answers object/],
+  ['answers is an array', { model, answers: [] }, /response has no answers object/],
+  [
+    'a ref is missing',
+    { model, answers: { s0: { noul: 0.4 } } },
+    /no probability in \[0, 1\] for "s1"/,
+  ],
   [
     'a noul is a string',
-    { answers: { s0: { noul: 0.4 }, s1: { noul: '0.9' } } },
+    { model, answers: { s0: { noul: 0.4 }, s1: { noul: '0.9' } } },
     /no probability in \[0, 1\] for "s1"/,
   ],
   [
     'a noul is NaN',
-    { answers: { s0: { noul: 0.4 }, s1: { noul: Number.NaN } } },
+    { model, answers: { s0: { noul: 0.4 }, s1: { noul: Number.NaN } } },
     /no probability in \[0, 1\] for "s1"/,
   ],
   [
     'a noul is below 0',
-    { answers: { s0: { noul: 0.4 }, s1: { noul: -0.01 } } },
+    { model, answers: { s0: { noul: 0.4 }, s1: { noul: -0.01 } } },
     /no probability in \[0, 1\] for "s1"/,
   ],
   [
     'a noul is above 1',
-    { answers: { s0: { noul: 0.4 }, s1: { noul: 1.01 } } },
+    { model, answers: { s0: { noul: 0.4 }, s1: { noul: 1.01 } } },
     /no probability in \[0, 1\] for "s1"/,
   ],
 ];
@@ -101,8 +117,8 @@ for (const [name, json, message] of badResponses) {
 }
 
 test('accepts the boundaries 0 and 1', () => {
-  const json = { answers: { s0: { noul: 0 }, s1: { noul: 1 } } };
-  expect(parseVerdicts(json, ['s0', 's1'])).toEqual({ s0: 0, s1: 1 });
+  const json = { model, answers: { s0: { noul: 0 }, s1: { noul: 1 } } };
+  expect(parseVerdicts(json, ['s0', 's1'])).toEqual({ model, scores: { s0: 0, s1: 1 } });
 });
 
 const endpoint = 'https://api.typesafe.ai';
