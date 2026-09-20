@@ -45,8 +45,6 @@ Add the plugin and its one rule, `jev/ask`, to `.oxlintrc.json`. Your English ru
 }
 ```
 
-Every rule has four fields.
-
 | Field      | What it is                                                   |
 | ---------- | ------------------------------------------------------------ |
 | `id`       | Shown in the error message. Unique in the list.              |
@@ -54,7 +52,7 @@ Every rule has four fields.
 | `question` | A yes/no question. "Yes" means "report this".                |
 | `cutoff`   | 0 to 1. Report when Jev's yes-probability is at or above it. |
 
-`target` decides what Jev gets to read.
+`target` decides what Jev gets to read. There is no selector syntax and no other target.
 
 | Target       | Jev sees                                                                                                     | The error underlines |
 | ------------ | ------------------------------------------------------------------------------------------------------------ | -------------------- |
@@ -63,37 +61,31 @@ Every rule has four fields.
 | `"jsx"`      | The whole element, children included.                                                                        | The opening tag      |
 | `"file"`     | The whole file.                                                                                              | The first line       |
 
-These four targets are the whole set.
-
 The wording of the question is the rule, so be precise about what counts. "Does this send personal data" also fires on a legitimate `mailer.send(user.email, ...)`. "To a log or console" does not.
 
-Optional settings, with their defaults.
+| Setting             | Default        | Meaning                                                                                                                                            |
+| ------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ci`                | `"skip"`       | What happens when Jev can't be asked and `CI` is set. `"skip"` warns once and reports nothing. `"fail"` fails the run. Outside CI it always skips. |
+| `timeoutMs`         | `10000`        | Per-file request timeout, retries included.                                                                                                        |
+| `maxMatchesPerFile` | `25`           | Snippets sent per file across all rules. Extra matches are dropped in source order.                                                                |
+| `maxSnippetChars`   | `4000`         | Longer snippets are cut and end with `/* ...truncated */`.                                                                                         |
+| `model`             | `"jev-latest"` | TypeSafe model id. Pin a versioned id such as `"jev-1.13.0"` once your cutoffs are tuned. Each diagnostic names the version that answered.         |
 
-| Field               | Default        | Meaning                                                                                                                                                                            |
-| ------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ci`                | `"skip"`       | What happens when Jev can't be asked and `CI` is set. `"skip"` warns once and reports nothing. `"fail"` fails the run. Outside CI it always skips.                                 |
-| `timeoutMs`         | `10000`        | Per-file request timeout, retries included.                                                                                                                                        |
-| `maxMatchesPerFile` | `25`           | Snippets sent per file across all rules. Extra matches are dropped in source order.                                                                                                |
-| `maxSnippetChars`   | `4000`         | Longer snippets are cut and end with `/* ...truncated */`.                                                                                                                         |
-| `model`             | `"jev-latest"` | TypeSafe model id. Pin a versioned id such as `"jev-1.13.0"` in CI once your cutoffs are tuned, so a new build cannot move them. Every diagnostic names the version that answered. |
-
-Oxlint checks the options against a schema before linting anything, so a typo in `target` or an unknown field fails at startup with a clear message.
-
-Two environment variables matter. `TYPESAFE_API_KEY` is required. `TYPESAFE_BASE_URL` overrides the API host and is mostly for tests.
+`TYPESAFE_BASE_URL` points the plugin at another host. The tests use it for a mock.
 
 ## How it works
 
-One request per file. Every match goes into one request body and Jev answers all of the questions at once.
+One request per file, with every match in it.
 
-Answers are cached under `node_modules/.cache/oxlint-plugin-jev`, keyed by the request. Changing a snippet or a question re-asks that file. Changing a cutoff or an `id` does not. A cache entry that fails to parse is a miss.
+Answers are cached under `node_modules/.cache/oxlint-plugin-jev`, keyed by the request. Changing a snippet or a question re-asks that file. Changing a cutoff or an `id` does not.
 
-Oxlint rules are synchronous, so the request runs on a [`synckit`](https://github.com/un-ts/synckit) worker thread, where the official [`@typesafe-ai/sdk`](https://www.npmjs.com/package/@typesafe-ai/sdk) client sends it and retries rate limits and server errors within `timeoutMs`.
+The request runs on a worker thread through the official [`@typesafe-ai/sdk`](https://www.npmjs.com/package/@typesafe-ai/sdk) client, which retries rate limits and server errors within `timeoutMs`.
 
 If Jev can't be asked, because the key is missing, the request times out, or the API errors, the plugin prints one warning and reports nothing for that file. Set `ci: "fail"` to fail the run instead.
 
 ## In the editor
 
-The oxlint VS Code extension lints as you type. Nearly every keystroke changes a snippet, so nearly every keystroke is a paid request that blocks the language server until Jev answers.
+The oxlint VS Code extension lints as you type, and every keystroke inside a match is a paid request that blocks the language server until Jev answers.
 
 Keep `jev/ask` out of the config your editor reads, and put it in an overlay for CI and pre-push. Leave `jsPlugins` in the base config, since the overlay inherits it.
 
@@ -113,7 +105,7 @@ oxlint -c .oxlintrc.ci.json   # CI and pre-push, Jev included
 
 ## Example
 
-`example/` has three rules and two files. `fail.js` gets three errors, `pass.js` gets none. Each rule catches something a pattern-based linter can't express.
+`example/` has three rules that a pattern-based linter can't express, a file that fails all three, and a file that passes.
 
 | Rule                    | Fails on                                                | Passes on                                   |
 | ----------------------- | ------------------------------------------------------- | ------------------------------------------- |
@@ -130,7 +122,7 @@ npm run example
 TypeScript, built with [Vite+](https://viteplus.dev). ESM only.
 
 ```sh
-npm run build   # src/ to dist/
+npm run build
 npm run check   # format, lint, typecheck
 npm test        # builds first, since the worker tests run against dist/
 JEV_LIVE=1 TYPESAFE_API_KEY=... npm test   # also runs example/ against the real API
