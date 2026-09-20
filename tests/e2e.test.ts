@@ -34,11 +34,13 @@ interface OxlintReport {
   diagnostics: { code: string; labels: { span: OxlintSpan }[] }[];
 }
 
-function runOxlint(env: Record<string, string>, extraArgs: string[] = []) {
+// oxlint picks its reporter from the environment, and on Actions runners that is GitHub
+// annotations, so the format is named explicitly.
+function runOxlint(env: Record<string, string>, format: 'unix' | 'json' | 'default' = 'unix') {
   const clean = { ...process.env };
   delete clean.CI;
   delete clean.TYPESAFE_API_KEY;
-  return spawnSync(oxlintBin, ['-c', 'example/.oxlintrc.json', ...extraArgs, 'example/'], {
+  return spawnSync(oxlintBin, ['--format', format, '-c', 'example/.oxlintrc.json', 'example/'], {
     cwd: root,
     encoding: 'utf8',
     env: { ...clean, ...env },
@@ -72,7 +74,7 @@ test('oxlint reports what Jev answered yes to', async () => {
     jevLines(first),
     `the messageId renders the id, the model that answered, both numbers at two decimals, and the question\n${first.stdout}`,
   ).toContain(
-    'example/fail.js:5:3: error jev(ask): [no-pii-in-logs] jev-mock answered yes (0.95 >= 0.80): Does this call write personal data, such as an email or phone number, to a log or console?',
+    'example/fail.js:5:3: [no-pii-in-logs] jev-mock answered yes (0.95 >= 0.80): Does this call write personal data, such as an email or phone number, to a log or console? [Error/jev(ask)]',
   );
   expect(
     jevLines(first).length,
@@ -122,7 +124,7 @@ test('oxlint reports what Jev answered yes to', async () => {
     'a run over malformed cache entries reports the same diagnostics',
   ).toEqual(jevLines(first));
 
-  const report = JSON.parse(runOxlint(withJev, ['--format', 'json']).stdout) as OxlintReport;
+  const report = JSON.parse(runOxlint(withJev, 'json').stdout) as OxlintReport;
   const spans = report.diagnostics
     .filter((diagnostic) => diagnostic.code === 'jev(ask)')
     .map((diagnostic) => diagnostic.labels[0].span);
@@ -142,7 +144,7 @@ test('oxlint reports what Jev answered yes to', async () => {
 
 test('a missing key fails the run under CI when ci is fail', () => {
   rmSync(cacheDir, { recursive: true, force: true });
-  const result = runOxlint({ CI: '1' });
+  const result = runOxlint({ CI: '1' }, 'default');
   expect(result.status, 'oxlint fails the run').not.toBe(0);
   expect(`${result.stdout}${result.stderr}`, 'the missing key is named').toMatch(
     /TYPESAFE_API_KEY/,
@@ -206,7 +208,7 @@ function runWithOptions(options: unknown) {
   const clean = { ...process.env };
   delete clean.CI;
   delete clean.TYPESAFE_API_KEY;
-  return spawnSync(oxlintBin, ['-c', config, 'example/pass.js'], {
+  return spawnSync(oxlintBin, ['--format', 'default', '-c', config, 'example/pass.js'], {
     cwd: root,
     encoding: 'utf8',
     env: clean,
