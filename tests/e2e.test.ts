@@ -199,6 +199,50 @@ test('two files with the same text but different parses are asked about separate
   ).toEqual([2, 3]);
 });
 
+test('a file over maxMatchesPerFile is capped and named on stderr', async () => {
+  const project = mkdtempSync(path.join(tmpdir(), 'jev-capped-'));
+  const { child, logPath, baseURL } = await startMockJev();
+  onTestFinished(() => {
+    child.kill();
+  });
+  const piiRule: JevRule = {
+    id: 'no-pii-in-logs',
+    target: 'call',
+    question: 'Does this call write personal data to a log?',
+    cutoff: 0.8,
+  };
+  writeFileSync(
+    path.join(project, '.oxlintrc.json'),
+    JSON.stringify({
+      jsPlugins: [pluginPath],
+      rules: { 'jev/ask': ['error', { maxMatchesPerFile: 25, rules: [piiRule] }] },
+    }),
+  );
+  writeFileSync(
+    path.join(project, 'rows.js'),
+    `${Array.from({ length: 30 }, () => 'console.log("row", user.email, user.phone);').join('\n')}\n`,
+  );
+
+  const clean = { ...process.env };
+  delete clean.CI;
+  const result = spawnSync(oxlintBin, ['--format', 'unix', '-c', '.oxlintrc.json', 'rows.js'], {
+    cwd: project,
+    encoding: 'utf8',
+    env: { ...clean, TYPESAFE_API_KEY: 'test-key', TYPESAFE_BASE_URL: baseURL },
+  });
+  const requests = asked(logPath);
+  expect(requests.length, 'the file is asked about once').toBe(1);
+  expect(Object.keys(requests[0].body.questions).length, 'only the first 25 matches are sent').toBe(
+    25,
+  );
+  expect(result.stderr, `the dropped tail is counted on stderr\n${result.stderr}`).toContain(
+    '30 matches exceeded maxMatchesPerFile=25, 5 not checked',
+  );
+  expect(result.stderr, 'the capped file is named on stderr').toContain('rows.js');
+  expect(jevLines(result).length, 'the 25 sent matches are still reported').toBe(25);
+  expect(result.status, 'the cap does not change the exit code').toBe(1);
+});
+
 function runWithOptions(options: unknown) {
   const config = path.join(mkdtempSync(path.join(tmpdir(), 'jev-config-')), '.oxlintrc.json');
   writeFileSync(
