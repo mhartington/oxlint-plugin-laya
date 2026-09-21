@@ -112,6 +112,7 @@ interface FilePass {
   readonly apiKey: string;
   readonly byType: Map<string, JevRule[]>;
   readonly matches: Match[];
+  dropped: number;
 }
 
 function createOnce(context: Context): VisitorWithHooks {
@@ -122,7 +123,10 @@ function createOnce(context: Context): VisitorWithHooks {
     const rules = pass.byType.get(type);
     if (rules === undefined) return;
     for (const rule of rules) {
-      if (pass.matches.length >= pass.options.maxMatchesPerFile) return;
+      if (pass.matches.length >= pass.options.maxMatchesPerFile) {
+        pass.dropped += 1;
+        return;
+      }
       const own = snippetOf(context.sourceCode, node);
       const named = snippetNodeFor(node);
       const text = named === node ? own : context.sourceCode.getText(named);
@@ -154,7 +158,7 @@ function createOnce(context: Context): VisitorWithHooks {
       warnOnce('missing-key', 'TYPESAFE_API_KEY is not set, skipping Jev checks');
       return;
     }
-    pass = { options, apiKey, byType: nodeTypeIndex(options), matches: [] };
+    pass = { options, apiKey, byType: nodeTypeIndex(options), matches: [], dropped: 0 };
     collect('Program', node);
   };
 
@@ -162,6 +166,14 @@ function createOnce(context: Context): VisitorWithHooks {
     const collected = pass;
     pass = null;
     if (collected === null || collected.matches.length === 0) return;
+    if (collected.dropped > 0) {
+      const cap = collected.options.maxMatchesPerFile;
+      const total = collected.matches.length + collected.dropped;
+      warnOnce(
+        `capped:${context.filename}`,
+        `${total} matches exceeded maxMatchesPerFile=${cap}, ${collected.dropped} not checked (${context.filename})`,
+      );
+    }
     const verdicts = verdictsFor(context, collected.options, collected.matches, collected.apiKey);
     if (verdicts === null) return;
     collected.matches.forEach((match, index) => {

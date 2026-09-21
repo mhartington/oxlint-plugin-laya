@@ -14,6 +14,8 @@ npm i -D oxlint oxlint-plugin-jev
 export TYPESAFE_API_KEY="..."   # https://console.typesafe.ai
 ```
 
+In CI, set `ci: "fail"` so a run that could not reach Jev fails instead of passing quietly.
+
 ## Config
 
 Add the plugin and its one rule, `jev/ask`, to `.oxlintrc.json`. Your English rules go in the options.
@@ -67,7 +69,7 @@ The wording of the question is the rule, so be precise about what counts. "Does 
 | ------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ci`                | `"skip"`       | What happens when Jev can't be asked and `CI` is set. `"skip"` warns once and reports nothing. `"fail"` fails the run. Outside CI it always skips. |
 | `timeoutMs`         | `10000`        | Per-file request timeout, retries included.                                                                                                        |
-| `maxMatchesPerFile` | `25`           | Snippets sent per file across all rules. Extra matches are dropped in source order.                                                                |
+| `maxMatchesPerFile` | `25`           | Snippets sent per file across all rules. Extra matches are dropped in source order and the file is named on stderr.                                |
 | `maxSnippetChars`   | `4000`         | Longer snippets are cut and end with `/* ...truncated */`.                                                                                         |
 | `model`             | `"jev-latest"` | TypeSafe model id. Pin a versioned id such as `"jev-1.13.0"` once your cutoffs are tuned. Each diagnostic names the version that answered.         |
 
