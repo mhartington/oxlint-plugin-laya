@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import { createSyncFn, type Syncify } from 'synckit';
-import { messageOf } from './jev.ts';
+import { messageOf } from './laya.ts';
 import type { AskInput, AskResult } from './types.ts';
 
 // synckit fixes its timeout when the sync fn is created, but ours is per call, so the
@@ -8,20 +8,20 @@ import type { AskInput, AskResult } from './types.ts';
 const BACKSTOP_MS = 60000;
 const SYNCKIT_TIMEOUT = 'Internal error: Atomics.wait() failed: timed-out';
 
-type JevWorker = (input: AskInput) => Promise<AskResult>;
+type LayaWorker = (input: AskInput) => Promise<AskResult>;
 
-let call: Syncify<JevWorker> | null = null;
+let call: Syncify<LayaWorker> | null = null;
 
-function jevCall(): Syncify<JevWorker> {
-  call ??= createSyncFn<JevWorker>(fileURLToPath(new URL('./worker.mjs', import.meta.url)), {
+function layaCall(): Syncify<LayaWorker> {
+  call ??= createSyncFn<LayaWorker>(fileURLToPath(new URL('./worker.mjs', import.meta.url)), {
     timeout: BACKSTOP_MS,
   });
   return call;
 }
 
-export function askJev(input: AskInput): AskResult {
+export function askLaya(input: AskInput): AskResult {
   try {
-    return jevCall()(input);
+    return layaCall()(input);
   } catch (error) {
     const message = messageOf(error);
     if (message === SYNCKIT_TIMEOUT) return { ok: false, reason: 'timeout' };

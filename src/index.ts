@@ -6,9 +6,15 @@ import type {
   SourceCode,
   VisitorWithHooks,
 } from '@oxlint/plugins';
-import { ENV } from '@typesafe-ai/sdk';
 import { defaultCacheDir, readCache, writeCache } from './cache.ts';
-import { buildRequest, cacheKey, messageOf, parseVerdicts, refAt, truncateSnippet } from './jev.ts';
+import {
+  buildRequest,
+  cacheKey,
+  messageOf,
+  parseVerdicts,
+  refAt,
+  truncateSnippet,
+} from './laya.ts';
 import {
   checkOptions,
   DEFAULTS,
@@ -17,25 +23,24 @@ import {
   snippetNodeFor,
   TARGET_NODE_TYPES,
 } from './options.ts';
-import { askJev } from './sync-jev.ts';
-import type { JevPlugin, JevRule, Match, ResolvedOptions, Verdicts } from './types.ts';
+import { askLaya } from './sync-laya.ts';
+import type { LayaPlugin, LayaRule, Match, ResolvedOptions, Verdicts } from './types.ts';
 
-export type { CiBehavior, JevOptions, JevPlugin, JevRule, Target } from './types.ts';
+export type { CiBehavior, LayaOptions, LayaPlugin, LayaRule, Target } from './types.ts';
 
 const optionsByRaw = new WeakMap<object, ResolvedOptions>();
 const warnedReasons = new Set<string>();
-let missingKeyRaised = false;
 
 function warnOnce(reason: string, message: string): void {
   if (warnedReasons.has(reason)) return;
   warnedReasons.add(reason);
-  console.warn(`oxlint-plugin-jev: ${message}`);
+  console.warn(`oxlint-plugin-laya: ${message}`);
 }
 
-const DEFAULT_BASE_URL = 'https://api.typesafe.ai';
+const DEFAULT_BASE_URL = 'http://127.0.0.1:8000';
 
 const baseURL = (): string =>
-  ((process.env[ENV.baseURL] ?? '').trim() || DEFAULT_BASE_URL).replace(/\/+$/, '');
+  ((process.env.LAYA_BASE_URL ?? '').trim() || DEFAULT_BASE_URL).replace(/\/+$/, '');
 
 const snippetOf = (sourceCode: SourceCode, node: ESTree.Node): string =>
   node.type === 'Program' ? sourceCode.text : sourceCode.getText(node);
@@ -49,8 +54,8 @@ function optionsFor(raw: unknown): ResolvedOptions {
   return options;
 }
 
-function rulesByNodeType(rules: readonly JevRule[]): Map<string, JevRule[]> {
-  const byType = new Map<string, JevRule[]>();
+function rulesByNodeType(rules: readonly LayaRule[]): Map<string, LayaRule[]> {
+  const byType = new Map<string, LayaRule[]>();
   for (const rule of rules) {
     for (const type of TARGET_NODE_TYPES[rule.target]) {
       byType.set(type, [...(byType.get(type) ?? []), rule]);
@@ -61,7 +66,7 @@ function rulesByNodeType(rules: readonly JevRule[]): Map<string, JevRule[]> {
 
 function degrade(context: Context, options: ResolvedOptions, reason: string): null {
   if (process.env.CI && options.ci === 'fail') {
-    throw new Error(`oxlint-plugin-jev: ${reason} (${context.filename})`);
+    throw new Error(`oxlint-plugin-laya: ${reason} (${context.filename})`);
   }
   warnOnce(reason, `${reason} (${context.filename})`);
   return null;
@@ -81,7 +86,7 @@ function verdictsFor(
   const cached = readCache(dir, key, refs);
   if (cached !== null) return cached;
 
-  const result = askJev({ apiKey, baseURL: url, request, timeoutMs: options.timeoutMs });
+  const result = askLaya({ apiKey, baseURL: url, request, timeoutMs: options.timeoutMs });
   if (!result.ok) return degrade(context, options, result.reason);
   let verdicts: Verdicts;
   try {
@@ -97,9 +102,9 @@ function verdictsFor(
   return verdicts;
 }
 
-const byTypeByOptions = new WeakMap<ResolvedOptions, Map<string, JevRule[]>>();
+const byTypeByOptions = new WeakMap<ResolvedOptions, Map<string, LayaRule[]>>();
 
-function nodeTypeIndex(options: ResolvedOptions): Map<string, JevRule[]> {
+function nodeTypeIndex(options: ResolvedOptions): Map<string, LayaRule[]> {
   const cached = byTypeByOptions.get(options);
   if (cached !== undefined) return cached;
   const byType = rulesByNodeType(options.rules);
@@ -110,7 +115,7 @@ function nodeTypeIndex(options: ResolvedOptions): Map<string, JevRule[]> {
 interface FilePass {
   readonly options: ResolvedOptions;
   readonly apiKey: string;
-  readonly byType: Map<string, JevRule[]>;
+  readonly byType: Map<string, LayaRule[]>;
   readonly matches: Match[];
   dropped: number;
 }
@@ -147,17 +152,7 @@ function createOnce(context: Context): VisitorWithHooks {
   // guarantee `before` runs for every file.
   visitors.Program = (node) => {
     const options = optionsFor(context.options[0]);
-    const apiKey = (process.env[ENV.apiKey] ?? '').trim();
-    if (apiKey.length === 0) {
-      pass = null;
-      if (process.env.CI && options.ci === 'fail') {
-        if (missingKeyRaised) return;
-        missingKeyRaised = true;
-        throw new Error('oxlint-plugin-jev: TYPESAFE_API_KEY is not set');
-      }
-      warnOnce('missing-key', 'TYPESAFE_API_KEY is not set, skipping Jev checks');
-      return;
-    }
+    const apiKey = (process.env.LAYA_API_KEY ?? '').trim();
     pass = { options, apiKey, byType: nodeTypeIndex(options), matches: [], dropped: 0 };
     collect('Program', node);
   };
@@ -201,15 +196,15 @@ const meta = {
   type: 'problem',
   docs: {
     description:
-      "Ask TypeSafe Jev a plain-English yes/no question about matched code and report when the yes-probability clears the rule's cutoff.",
+      "Ask Laya a plain-English yes/no question about matched code and report when the yes-probability clears the rule's cutoff.",
   },
   schema: [SCHEMA],
   defaultOptions: [DEFAULTS],
   messages: { yes: '[{{id}}] {{model}} answered yes ({{score}} >= {{cutoff}}): {{question}}' },
 } satisfies RuleMeta;
 
-const plugin: JevPlugin = {
-  meta: { name: 'jev' },
+const plugin: LayaPlugin = {
+  meta: { name: 'laya' },
   rules: { ask: { meta, createOnce } },
 } satisfies Plugin;
 

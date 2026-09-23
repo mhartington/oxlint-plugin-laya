@@ -4,9 +4,9 @@ import path from 'node:path';
 import { expect, test } from 'vite-plus/test';
 import { defaultCacheDir, readCache, writeCache } from '../src/cache.ts';
 
-const scratch = () => mkdtempSync(path.join(tmpdir(), 'jev-cache-'));
+const scratch = () => mkdtempSync(path.join(tmpdir(), 'laya-cache-'));
 const key = 'a'.repeat(64);
-const model = 'jev-mock';
+const model = 'laya-mock';
 const response = (verdicts: Record<string, unknown>) => ({
   model,
   answers: Object.fromEntries(
@@ -17,7 +17,7 @@ const store = (dir: string, text: string) => writeFileSync(path.join(dir, `${key
 
 test('lives under node_modules/.cache in the working directory', () => {
   expect(defaultCacheDir()).toBe(
-    path.join(process.cwd(), 'node_modules', '.cache', 'oxlint-plugin-jev'),
+    path.join(process.cwd(), 'node_modules', '.cache', 'oxlint-plugin-laya'),
   );
 });
 

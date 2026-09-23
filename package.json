@@ -1,13 +1,12 @@
 {
-  "name": "oxlint-plugin-jev",
+  "name": "oxlint-plugin-laya",
   "version": "0.1.2",
-  "description": "Oxlint JS plugin that lints code with plain-English rules answered by TypeSafe Jev.",
+  "description": "Oxlint JS plugin that lints code with plain-English rules answered by Laya.",
   "keywords": [
-    "jev",
+    "laya",
     "lint",
     "oxlint",
-    "oxlint-plugin",
-    "typesafe"
+    "oxlint-plugin"
   ],
   "license": "MIT",
   "files": [
@@ -32,7 +31,6 @@
     "prepublishOnly": "vp run build"
   },
   "dependencies": {
-    "@typesafe-ai/sdk": "^0.6.0",
     "synckit": "^0.11.13"
   },
   "devDependencies": {

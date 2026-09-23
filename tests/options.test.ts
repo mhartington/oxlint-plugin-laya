@@ -10,10 +10,10 @@ import {
   snippetNodeFor,
   TARGET_NODE_TYPES,
 } from '../src/options.ts';
-import type { JevRule, NamedParent } from '../src/types.ts';
+import type { LayaRule, NamedParent } from '../src/types.ts';
 
-const rule: JevRule = { id: 'a', target: 'call', question: 'Is it bad?', cutoff: 0.8 };
-const withRules = (...rules: JevRule[]) => ({ ...DEFAULTS, rules });
+const rule: LayaRule = { id: 'a', target: 'call', question: 'Is it bad?', cutoff: 0.8 };
+const withRules = (...rules: LayaRule[]) => ({ ...DEFAULTS, rules });
 
 test('returns the merged options oxlint handed it, untouched', () => {
   const merged = withRules(rule);
@@ -22,13 +22,13 @@ test('returns the merged options oxlint handed it, untouched', () => {
 
 test('rejects options where rules is missing', () => {
   expect(() => checkOptions({ ...DEFAULTS })).toThrow(
-    /^oxlint-plugin-jev: options\.rules must list at least one rule$/,
+    /^oxlint-plugin-laya: options\.rules must list at least one rule$/,
   );
 });
 
 test('rejects options where two rules share an id', () => {
   expect(() => checkOptions(withRules(rule, { ...rule, target: 'file' }))).toThrow(
-    /^oxlint-plugin-jev: rule id "a" is used more than once$/,
+    /^oxlint-plugin-laya: rule id "a" is used more than once$/,
   );
 });
 
@@ -51,7 +51,7 @@ test('defaults the plugin fields the README documents', () => {
     timeoutMs: 10000,
     maxMatchesPerFile: 25,
     maxSnippetChars: 4000,
-    model: 'jev-latest',
+    model: 'english',
   });
 });
 

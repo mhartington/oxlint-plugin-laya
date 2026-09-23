@@ -1,10 +1,10 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { parseVerdicts } from './jev.ts';
+import { parseVerdicts } from './laya.ts';
 import type { Verdicts } from './types.ts';
 
 export const defaultCacheDir = (): string =>
-  path.join(process.cwd(), 'node_modules', '.cache', 'oxlint-plugin-jev');
+  path.join(process.cwd(), 'node_modules', '.cache', 'oxlint-plugin-laya');
 
 export function readCache(dir: string, key: string, refs: readonly string[]): Verdicts | null {
   try {

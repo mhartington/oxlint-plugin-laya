@@ -5,17 +5,12 @@ import { fileURLToPath } from 'node:url';
 import { expect, test } from 'vite-plus/test';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const cacheDir = path.join(root, 'node_modules', '.cache', 'oxlint-plugin-jev');
+const cacheDir = path.join(root, 'node_modules', '.cache', 'oxlint-plugin-laya');
 const RULE_IDS = ['name-matches-behavior', 'no-pii-in-logs', 'no-prompt-injection'];
 
-const skip =
-  process.env.JEV_LIVE !== '1'
-    ? 'set JEV_LIVE=1 to lint example/ against the real API'
-    : (process.env.TYPESAFE_API_KEY ?? '').trim() === ''
-      ? 'TYPESAFE_API_KEY is not set'
-      : false;
+const skip = process.env.LAYA_LIVE !== '1';
 
-test.skipIf(skip !== false)(
+test.skipIf(skip)(
   'the example produces exactly the documented diagnostics against the real API',
   () => {
     rmSync(cacheDir, { recursive: true, force: true });
@@ -23,10 +18,10 @@ test.skipIf(skip !== false)(
     delete env.CI;
     const result = spawnSync(
       path.join(root, 'node_modules', 'oxlint', 'bin', 'oxlint'),
-      ['-c', 'example/.oxlintrc.json', 'example/'],
+      ['--format', 'unix', '-c', 'example/.oxlintrc.json', 'example/'],
       { cwd: root, encoding: 'utf8', env },
     );
-    const lines = result.stdout.split('\n').filter((line) => line.includes('jev(ask)'));
+    const lines = result.stdout.split('\n').filter((line) => line.includes('laya(ask)'));
     const idsOn = (file: string) =>
       lines
         .filter((line) => line.includes(file))

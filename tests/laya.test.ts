@@ -1,14 +1,14 @@
 import { expect, test } from 'vite-plus/test';
-import { buildRequest, cacheKey, parseVerdicts, truncateSnippet } from '../src/jev.ts';
-import type { JevRule, RequestMatch } from '../src/types.ts';
+import { buildRequest, cacheKey, parseVerdicts, truncateSnippet } from '../src/laya.ts';
+import type { LayaRule, RequestMatch } from '../src/types.ts';
 
-const secretRule: JevRule = {
+const secretRule: LayaRule = {
   id: 'no-secret-logging',
   target: 'call',
   question: 'Does this call print, log, or send a password, token, secret, or API key?',
   cutoff: 0.8,
 };
-const swallowRule: JevRule = {
+const swallowRule: LayaRule = {
   id: 'no-swallowed-errors',
   target: 'function',
   question: 'Does this function swallow an error silently?',
@@ -20,8 +20,8 @@ const matches: RequestMatch[] = [
 ];
 
 test('builds the request body documented in the README', () => {
-  expect(buildRequest('jev-latest', matches)).toEqual({
-    model: 'jev-latest',
+  expect(buildRequest('english', matches)).toEqual({
+    model: 'english',
     state: {
       snippets: {
         s0: 'console.log("token", process.env.API_TOKEN)',
@@ -44,7 +44,7 @@ test('builds the request body documented in the README', () => {
 });
 
 test('numbers refs in match order', () => {
-  const body = buildRequest('jev-latest', [...matches, { rule: secretRule, snippet: 'third()' }]);
+  const body = buildRequest('english', [...matches, { rule: secretRule, snippet: 'third()' }]);
   expect(Object.keys(body.questions)).toEqual(['s0', 's1', 's2']);
   expect(body.state.snippets.s2).toBe('third()');
 });
@@ -57,7 +57,7 @@ test('marks a snippet past the limit as truncated', () => {
   expect(truncateSnippet('abcdef', 5)).toBe('abcde/* ...truncated */');
 });
 
-const model = 'jev-1.13.0';
+const model = 'laya-rl-agent';
 
 test('reads a verdict per ref', () => {
   const json = {
@@ -121,37 +121,34 @@ test('accepts the boundaries 0 and 1', () => {
   expect(parseVerdicts(json, ['s0', 's1'])).toEqual({ model, scores: { s0: 0, s1: 1 } });
 });
 
-const endpoint = 'https://api.typesafe.ai';
-const request = buildRequest('jev-latest', matches);
+const endpoint = 'http://127.0.0.1:8000';
+const request = buildRequest('english', matches);
 const keyInput = { endpoint, request };
 
 test('hashes to a stable sha256 hex digest', () => {
   const key = cacheKey(keyInput);
   expect(key).toMatch(/^[0-9a-f]{64}$/);
-  expect(key).toBe(cacheKey({ endpoint, request: buildRequest('jev-latest', matches) }));
+  expect(key).toBe(cacheKey({ endpoint, request: buildRequest('english', matches) }));
 });
 
 const keyEdits: [string, { endpoint?: string; request?: typeof request }][] = [
-  ['the model changes', { request: buildRequest('jev-1', matches) }],
+  ['the model changes', { request: buildRequest('multilingual', matches) }],
   [
     'a snippet changes',
     {
-      request: buildRequest('jev-latest', [
-        { ...matches[0], snippet: 'console.log(2)' },
-        matches[1],
-      ]),
+      request: buildRequest('english', [{ ...matches[0], snippet: 'console.log(2)' }, matches[1]]),
     },
   ],
   [
     'a question changes',
     {
-      request: buildRequest('jev-latest', [
+      request: buildRequest('english', [
         { ...matches[0], rule: { ...secretRule, question: 'Something else?' } },
         matches[1],
       ]),
     },
   ],
-  ['two matches swap order', { request: buildRequest('jev-latest', [matches[1], matches[0]]) }],
+  ['two matches swap order', { request: buildRequest('english', [matches[1], matches[0]]) }],
   ['the endpoint changes', { endpoint: 'http://127.0.0.1:9' }],
 ];
 
@@ -166,19 +163,19 @@ test('keys on the request alone, so an edit outside every snippet reuses the ent
     ...match,
     loc: { start: { line: 99, column: 0 }, end: { line: 99, column: 0 } },
   }));
-  expect(cacheKey({ endpoint, request: buildRequest('jev-latest', rematched) })).toBe(
+  expect(cacheKey({ endpoint, request: buildRequest('english', rematched) })).toBe(
     cacheKey(keyInput),
   );
 });
 
-const verdictNeutralEdits: [string, JevRule][] = [
+const verdictNeutralEdits: [string, LayaRule][] = [
   ['a cutoff changes', { ...secretRule, cutoff: 0.81 }],
   ['a rule id changes', { ...secretRule, id: 'renamed' }],
 ];
 
 for (const [name, rule] of verdictNeutralEdits) {
   test(`keeps the key when ${name}, since verdicts do not depend on it`, () => {
-    const edited = buildRequest('jev-latest', [{ ...matches[0], rule }, matches[1]]);
+    const edited = buildRequest('english', [{ ...matches[0], rule }, matches[1]]);
     expect(cacheKey({ endpoint, request: edited })).toBe(cacheKey(keyInput));
   });
 }

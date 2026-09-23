@@ -37,7 +37,7 @@ export const DEFAULTS = {
   timeoutMs: 10000,
   maxMatchesPerFile: 25,
   maxSnippetChars: 4000,
-  model: 'jev-latest',
+  model: 'english',
 } satisfies Omit<ResolvedOptions, 'rules'>;
 
 // `rules` is absent from DEFAULTS and oxlint validates DEFAULTS against this schema at
@@ -70,7 +70,7 @@ export const SCHEMA = {
 } satisfies RuleOptionsSchema;
 
 function fail(message: string): never {
-  throw new Error(`oxlint-plugin-jev: ${message}`);
+  throw new Error(`oxlint-plugin-laya: ${message}`);
 }
 
 // oxlint validates `context.options` against SCHEMA before a rule sees it, so the only checks

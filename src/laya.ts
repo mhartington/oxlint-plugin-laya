@@ -1,6 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { NoulQuestion } from '@typesafe-ai/sdk';
-import type { JevRequest, RequestMatch, Verdicts } from './types.ts';
+import type { LayaRequest, RequestMatch, Verdicts } from './types.ts';
 
 export const messageOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
@@ -11,9 +10,9 @@ export function truncateSnippet(text: string, maxChars: number): string {
   return text.length <= maxChars ? text : `${text.slice(0, maxChars)}/* ...truncated */`;
 }
 
-export function buildRequest(model: string, matches: readonly RequestMatch[]): JevRequest {
+export function buildRequest(model: string, matches: readonly RequestMatch[]): LayaRequest {
   const snippets: Record<string, string> = {};
-  const questions: Record<string, NoulQuestion> = {};
+  const questions: LayaRequest['questions'] = {};
   matches.forEach((match, index) => {
     const ref = refAt(index);
     snippets[ref] = match.snippet;
@@ -60,7 +59,13 @@ export function parseVerdicts(json: unknown, refs: readonly string[]): Verdicts 
   return { model, scores };
 }
 
-export function cacheKey({ endpoint, request }: { endpoint: string; request: JevRequest }): string {
+export function cacheKey({
+  endpoint,
+  request,
+}: {
+  endpoint: string;
+  request: LayaRequest;
+}): string {
   const payload = JSON.stringify({ v: 3, endpoint, request });
   return createHash('sha256').update(payload).digest('hex');
 }

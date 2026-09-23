@@ -5,7 +5,7 @@ import path from 'node:path';
 import type { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 
-export interface MockJev {
+export interface MockLaya {
   child: ChildProcessByStdio<null, Readable, null>;
   logPath: string;
   baseURL: string;
@@ -15,10 +15,10 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 
 // The mock lives in its own process because the rule blocks the calling thread while it waits,
 // and a server on that thread could never answer.
-export function startMockJev(
-  logPath = path.join(mkdtempSync(path.join(tmpdir(), 'jev-mock-')), 'requests.jsonl'),
-): Promise<MockJev> {
-  const child = spawn(process.execPath, [path.join(here, 'jev-mock-server.ts'), logPath], {
+export function startMockLaya(
+  logPath = path.join(mkdtempSync(path.join(tmpdir(), 'laya-mock-')), 'requests.jsonl'),
+): Promise<MockLaya> {
+  const child = spawn(process.execPath, [path.join(here, 'laya-mock-server.ts'), logPath], {
     stdio: ['ignore', 'pipe', 'inherit'],
   });
   return new Promise((resolve, reject) => {

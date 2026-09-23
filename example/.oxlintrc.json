@@ -1,10 +1,11 @@
 {
   "jsPlugins": ["../dist/index.mjs"],
   "rules": {
-    "jev/ask": [
+    "laya/ask": [
       "error",
       {
         "ci": "fail",
+        "model": "convaiinnovations/laya",
         "rules": [
           {
             "id": "no-pii-in-logs",

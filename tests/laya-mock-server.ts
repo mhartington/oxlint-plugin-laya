@@ -26,7 +26,7 @@ function answer(body: MockRequestBody) {
       noul: scoreFor(body.questions[ref].instructions, body.state.snippets[ref]),
     };
   }
-  return { model: 'jev-mock', answers, usage: { input_tokens: 0, output_tokens: 0 } };
+  return { model: 'laya-mock', answers, usage: { input_tokens: 0, output_tokens: 0 } };
 }
 
 const hitsByToken: Record<string, number> = {};
@@ -37,12 +37,30 @@ function reply(token: string, body: MockRequestBody, response: ServerResponse): 
   if (token === 'slow') return;
   if (token === 'unauthorized') {
     response.writeHead(401, { 'content-type': 'application/json' });
-    response.end(JSON.stringify({ error: { message: 'bad key' } }));
+    response.end(JSON.stringify({ detail: 'invalid or missing bearer token' }));
     return;
   }
   if (token === 'flaky' && hitsByToken[token] === 1) {
     response.writeHead(429, { 'content-type': 'application/json', 'retry-after-ms': '10' });
     response.end('{}');
+    return;
+  }
+  if (token === 'server-error' || token === 'retry-timeout') {
+    response.writeHead(503, {
+      'content-type': 'application/json',
+      'retry-after': token === 'retry-timeout' ? '60' : '0.01',
+    });
+    response.end(JSON.stringify({ detail: 'service unavailable' }));
+    return;
+  }
+  if (token === 'invalid-json') {
+    response.writeHead(200, { 'content-type': 'application/json' });
+    response.end('{');
+    return;
+  }
+  if (token === 'slow-body') {
+    response.writeHead(200, { 'content-type': 'application/json' });
+    response.write('{');
     return;
   }
   response.writeHead(200, { 'content-type': 'application/json' });
